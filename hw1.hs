@@ -17,3 +17,10 @@ sumDigits xs = sum (concat [toDigits x | x <- xs])
 
 validate :: Integer -> Bool
 validate x = sumDigits(doubleEveryOther (toDigits x)) `mod` 10 == 0
+
+type Peg = String
+type Move = (Peg, Peg)
+hanoi :: Integer -> Peg -> Peg -> Peg -> [Move]
+hanoi nDiscs source destination temp
+    | nDiscs == 1 = [(source, destination)]
+    | otherwise = hanoi (nDiscs - 1) source temp destination ++ [(source, destination)] ++ hanoi (nDiscs - 1) temp destination source

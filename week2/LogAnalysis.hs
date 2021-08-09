@@ -8,14 +8,14 @@ parse :: String -> [LogMessage]
 parse logs = [parseMessage line | line <- lines logs]
 
 parseMessage :: String -> LogMessage
-parseMessage logLine = if null logLine then Unknown logLine
-                       else case parseMessageWords (words logLine) of
+parseMessage "" = Unknown ""
+parseMessage logLine = case parseMessageWords (words logLine) of
                             Nothing -> Unknown logLine
                             Just logMessage -> logMessage
 
 parseMessageWords :: [String] -> Maybe LogMessage
-parseMessageWords tokens = if null tokens then Nothing
-                           else case parseMessageType tokens of
+parseMessageWords [] = Nothing
+parseMessageWords tokens = case parseMessageType tokens of
                                 Nothing -> Nothing
                                 Just (messageType, remaining) -> do
                                     case parseTimestamp remaining of
@@ -23,23 +23,22 @@ parseMessageWords tokens = if null tokens then Nothing
                                         Just (ts, remainingTs) -> Just (LogMessage messageType ts (unwords remainingTs))
 
 parseMessageType :: [String] -> Maybe (MessageType, [String])
-parseMessageType tokens = if null tokens then Nothing
-                          else case head tokens of
+parseMessageType [] = Nothing
+parseMessageType tokens = case head tokens of
                             "I" -> Just (Info, drop 1 tokens)
                             "W" -> Just (Warning, drop 1 tokens)
                             "E" -> parseErrorMessageType (drop 1 tokens)
                             _   -> Nothing
 
 parseErrorMessageType :: [String] -> Maybe (MessageType, [String])
-parseErrorMessageType tokens = if null tokens then Nothing
-                               else
-                                    case readMaybe (head tokens) of
-                                        Nothing -> Nothing
-                                        Just level -> Just (Error level, drop 1 tokens)
+parseErrorMessageType [] = Nothing
+parseErrorMessageType tokens = case readMaybe (head tokens) of
+                                Nothing -> Nothing
+                                Just level -> Just (Error level, drop 1 tokens)
 
 parseTimestamp :: [String] -> Maybe (TimeStamp, [String])
-parseTimestamp tokens = if null tokens then Nothing
-                        else case readMaybe (head tokens) of
+parseTimestamp [] = Nothing
+parseTimestamp tokens = case readMaybe (head tokens) of
                             Nothing -> Nothing
                             Just ts -> Just (ts, drop 1 tokens)
 
@@ -67,8 +66,8 @@ build logMessages = do
 
 buildHelper :: [LogMessage] -> MessageTree -> MessageTree
 
-buildHelper logMessages tree = if null logMessages then tree
-                               else do
+buildHelper [] tree = tree
+buildHelper logMessages tree = do
                                 let newTree = insert (head logMessages) tree
                                 buildHelper (drop 1 logMessages) newTree
 

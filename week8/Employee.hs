@@ -55,6 +55,12 @@ data GuestList =
   GL [Employee] Fun
   deriving (Show, Eq)
 
+employees :: GuestList -> [Employee]
+employees (GL l _) = l
+
+fun :: GuestList -> Fun
+fun (GL _ f) = f
+
 instance Ord GuestList where
   compare (GL _ f1) (GL _ f2) = compare f1 f2
 
@@ -75,7 +81,28 @@ moreFun gl1@(GL _ f1) gl2@(GL _ f2)
 
 treeFold :: (a -> b -> b) -> b -> Tree a -> b
 treeFold f acc (Node val []) = f val acc
-treeFold f acc (Node val children) = f c val ( 
+treeFold f acc (Node val children) = f val (treeFoldChildren f acc children)
+
+treeFoldChildren :: (a -> b -> b) -> b -> [Tree a] -> b
+treeFoldChildren f acc [] = acc
+treeFoldChildren f acc ((Node val children):xs) =
+  f val (treeFoldChildren f acc (children ++ xs))
+
+nextLevel :: Employee -> [(GuestList, GuestList)] -> (GuestList, GuestList)
+nextLevel e [] = (GL [e] (empFun e), GL [] 0)
+nextLevel boss lowerList =
+  ( GL
+      (boss : employees bestLowerWithGrandBoss)
+      (empFun boss + fun bestLowerWithGrandBoss)
+  , bestLowerWithoutGrandBoss)
   where
-    newAcc = f val acc
-    (c:cs) = map (treeFold f acc) children
+    bestLowerWithGrandBoss = foldr1 (<>) (map (subtractBossFun . fst) lowerList)
+    bestLowerWithoutGrandBoss = foldr1 (<>) (map snd lowerList)
+
+-- assumes the boss is at the head of the list of employees
+subtractBossFun :: GuestList -> GuestList
+subtractBossFun (GL [] _) = GL [] 0
+subtractBossFun (GL (boss:employees) fun) = GL employees (fun - empFun boss)
+
+maxFun :: Tree Employee -> GuestList
+maxFun company = undefined

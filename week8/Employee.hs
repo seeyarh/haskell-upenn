@@ -96,13 +96,26 @@ nextLevel boss lowerList =
       (empFun boss + fun bestLowerWithGrandBoss)
   , bestLowerWithoutGrandBoss)
   where
-    bestLowerWithGrandBoss = foldr1 (<>) (map (subtractBossFun . fst) lowerList)
-    bestLowerWithoutGrandBoss = foldr1 (<>) (map snd lowerList)
+    bestLowerWithGrandBoss =
+      foldr1
+        (<>)
+        (map (\(gl1, gl2) -> moreFun (subtractBossFun gl1) gl2) lowerList)
+    bestLowerWithoutGrandBoss = foldr1 (<>) (map (uncurry moreFun) lowerList)
 
--- assumes the boss is at the head of the list of employees
 subtractBossFun :: GuestList -> GuestList
 subtractBossFun (GL [] _) = GL [] 0
-subtractBossFun (GL (boss:employees) fun) = GL employees (fun - empFun boss)
+subtractBossFun (GL all@(boss:employees) fun) = GL all (fun - empFun boss)
 
-maxFun :: Tree Employee -> GuestList
-maxFun company = undefined
+testCompany3 :: Tree Employee
+testCompany3 =
+  Node (Emp "Stan" 1) [Node (Emp "Bob" 2) [], Node (Emp "Sarah" 1) []]
+
+testLowerList =
+  [ (GL [Emp {empName = "Bob", empFun = 2}] 2, GL [] 0)
+  , (GL [Emp {empName = "Sarah", empFun = 1}] 1, GL [] 0)
+  ]
+
+testBoss = Emp {empName = "A", empFun = 1}
+
+--maxFun :: Tree Employee -> GuestList
+maxFun company = treeFold (\e acc -> (nextLevel e acc) : acc) [] company

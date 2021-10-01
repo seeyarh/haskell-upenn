@@ -79,43 +79,14 @@ moreFun gl1@(GL _ f1) gl2@(GL _ f2)
   | f1 > f2 = gl1
   | otherwise = gl2
 
-treeFold :: (a -> b -> b) -> b -> Tree a -> b
-treeFold f acc (Node val []) = f val acc
-treeFold f acc (Node val children) = f val (treeFoldChildren f acc children)
-
-treeFoldChildren :: (a -> b -> b) -> b -> [Tree a] -> b
-treeFoldChildren f acc [] = acc
-treeFoldChildren f acc ((Node val children):xs) =
-  f val (treeFoldChildren f acc (children ++ xs))
+treeFold :: (a -> [b] -> b) -> Tree a -> b
+treeFold f (Node a sf) = f a (treeFold f <$> sf)
 
 nextLevel :: Employee -> [(GuestList, GuestList)] -> (GuestList, GuestList)
-nextLevel e [] = (GL [e] (empFun e), GL [] 0)
-nextLevel boss lowerList =
-  ( GL
-      (boss : employees bestLowerWithGrandBoss)
-      (empFun boss + fun bestLowerWithGrandBoss)
-  , bestLowerWithoutGrandBoss)
+nextLevel boss gls = (glCons boss withoutBosses, withBosses)
   where
-    bestLowerWithGrandBoss =
-      foldr1
-        (<>)
-        (map (\(gl1, gl2) -> moreFun (subtractBossFun gl1) gl2) lowerList)
-    bestLowerWithoutGrandBoss = foldr1 (<>) (map (uncurry moreFun) lowerList)
+    withBosses = foldMap fst gls
+    withoutBosses = foldMap snd gls
 
-subtractBossFun :: GuestList -> GuestList
-subtractBossFun (GL [] _) = GL [] 0
-subtractBossFun (GL all@(boss:employees) fun) = GL all (fun - empFun boss)
-
-testCompany3 :: Tree Employee
-testCompany3 =
-  Node (Emp "Stan" 1) [Node (Emp "Bob" 2) [], Node (Emp "Sarah" 1) []]
-
-testLowerList =
-  [ (GL [Emp {empName = "Bob", empFun = 2}] 2, GL [] 0)
-  , (GL [Emp {empName = "Sarah", empFun = 1}] 1, GL [] 0)
-  ]
-
-testBoss = Emp {empName = "A", empFun = 1}
-
---maxFun :: Tree Employee -> GuestList
-maxFun company = treeFold (\e acc -> (nextLevel e acc) : acc) [] company
+maxFun :: Tree Employee -> GuestList
+maxFun = uncurry moreFun . treeFold nextLevel
